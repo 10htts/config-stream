@@ -42,7 +42,7 @@ const navigation = [
     name: "Tables",
     icon: Table,
     href: "/tables",
-    current: false,
+    current: true,
     badge: "12",
   },
   {
