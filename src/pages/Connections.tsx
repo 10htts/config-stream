@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Plus, Database, Edit, Trash2, TestTube, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -186,144 +187,151 @@ export default function Connections() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Database Connections</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your database connections and data sources
-          </p>
-        </div>
-
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              onClick={() => {
-                setEditingConnection(null);
-                setFormData({ name: '', type: '', host: '', port: '', database: '', username: '', password: '' });
-              }}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Connection
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingConnection ? 'Edit Connection' : 'Add New Connection'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Connection Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="My Database"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="type">Database Type *</Label>
-                <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select database type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {databaseTypes.map(type => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.icon} {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.type !== 'sqlite' && (
-                <>
-                  <div>
-                    <Label htmlFor="host">Host</Label>
-                    <Input
-                      id="host"
-                      value={formData.host}
-                      onChange={(e) => setFormData(prev => ({ ...prev, host: e.target.value }))}
-                      placeholder="localhost"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="port">Port</Label>
-                    <Input
-                      id="port"
-                      type="number"
-                      value={formData.port}
-                      onChange={(e) => setFormData(prev => ({ ...prev, port: e.target.value }))}
-                      placeholder="5432"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div>
-                <Label htmlFor="database">Database *</Label>
-                <Input
-                  id="database"
-                  value={formData.database}
-                  onChange={(e) => setFormData(prev => ({ ...prev, database: e.target.value }))}
-                  placeholder={formData.type === 'sqlite' ? '/path/to/database.db' : 'database_name'}
-                />
-              </div>
-
-              {formData.type !== 'sqlite' && (
-                <>
-                  <div>
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      value={formData.username}
-                      onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                      placeholder="username"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                        placeholder="password"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveConnection}>
-                  {editingConnection ? 'Update' : 'Add'} Connection
-                </Button>
-              </div>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col">
+        <header className="border-b border-border bg-surface-elevated px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Database Connections</h1>
+              <p className="text-sm text-muted-foreground">
+                Manage your database connections and data sources
+              </p>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  onClick={() => {
+                    setEditingConnection(null);
+                    setFormData({ name: '', type: '', host: '', port: '', database: '', username: '', password: '' });
+                  }}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Connection
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingConnection ? 'Edit Connection' : 'Add New Connection'}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Connection Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="My Database"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="type">Database Type *</Label>
+                    <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select database type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {databaseTypes.map(type => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.icon} {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.type !== 'sqlite' && (
+                    <>
+                      <div>
+                        <Label htmlFor="host">Host</Label>
+                        <Input
+                          id="host"
+                          value={formData.host}
+                          onChange={(e) => setFormData(prev => ({ ...prev, host: e.target.value }))}
+                          placeholder="localhost"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="port">Port</Label>
+                        <Input
+                          id="port"
+                          type="number"
+                          value={formData.port}
+                          onChange={(e) => setFormData(prev => ({ ...prev, port: e.target.value }))}
+                          placeholder="5432"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <Label htmlFor="database">Database *</Label>
+                    <Input
+                      id="database"
+                      value={formData.database}
+                      onChange={(e) => setFormData(prev => ({ ...prev, database: e.target.value }))}
+                      placeholder={formData.type === 'sqlite' ? '/path/to/database.db' : 'database_name'}
+                    />
+                  </div>
+
+                  {formData.type !== 'sqlite' && (
+                    <>
+                      <div>
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          value={formData.username}
+                          onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                          placeholder="username"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            value={formData.password}
+                            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                            placeholder="password"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveConnection}>
+                      {editingConnection ? 'Update' : 'Add'} Connection
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 space-y-6 bg-gradient-surface">
+          <div className="space-y-6">
 
       <div className="flex items-center gap-4">
         <div className="flex-1">
@@ -428,7 +436,10 @@ export default function Connections() {
             )}
           </CardContent>
         </Card>
-      )}
+        )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

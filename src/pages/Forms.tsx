@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -109,21 +110,29 @@ export default function Forms() {
   const categories = Array.from(new Set(mockForms.map(form => form.category)));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Forms</h1>
-          <p className="text-muted-foreground">
-            Create and manage your data collection forms
-          </p>
-        </div>
-        <Link to="/forms/new">
-          <Button className="bg-gradient-primary hover:bg-gradient-primary/90 text-white">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Form
-          </Button>
-        </Link>
-      </div>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col">
+        <header className="border-b border-border bg-surface-elevated px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Forms</h1>
+              <p className="text-sm text-muted-foreground">
+                Create and manage your data collection forms
+              </p>
+            </div>
+            <Link to="/forms/new">
+              <Button className="bg-gradient-primary hover:bg-gradient-primary/90 text-white">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Form
+              </Button>
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 space-y-6 bg-gradient-surface">
+          <div className="space-y-6">
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
@@ -298,7 +307,10 @@ export default function Forms() {
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
+          </Card>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Save, Shield, Bell, Database, Palette, Globe, Key, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,13 +57,21 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure your application settings and preferences
-        </p>
-      </div>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col">
+        <header className="border-b border-border bg-surface-elevated px-6 py-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+            <p className="text-sm text-muted-foreground">
+              Configure your application settings and preferences
+            </p>
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 space-y-6 bg-gradient-surface">
+          <div className="space-y-6">
 
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
@@ -460,6 +469,9 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
