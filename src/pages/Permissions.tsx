@@ -20,6 +20,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Shield,
   Plus,
   Search,
@@ -33,6 +40,8 @@ import {
   Table as TableIcon,
   Users,
   Settings,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 const mockPermissions = [
@@ -110,27 +119,83 @@ const mockPermissions = [
   },
 ];
 
-const mockRolePermissions = [
+// Mock hierarchical database structure
+const mockDatabaseStructure = [
   {
-    role: "Admin",
-    permissions: [
-      "Database Read", "Database Write", "Database Delete",
-      "Table Read", "Table Write", "Table Delete", 
-      "User Management", "System Settings"
+    id: "db1",
+    name: "Database1",
+    tables: [
+      {
+        id: "db1_users",
+        name: "UserTable",
+        fields: [
+          { id: "db1_users_id", name: "ID" },
+          { id: "db1_users_fullname", name: "FullName" },
+          { id: "db1_users_email", name: "Email" },
+          { id: "db1_users_role", name: "Role" },
+        ],
+      },
+      {
+        id: "db1_orders",
+        name: "OrderTable",
+        fields: [
+          { id: "db1_orders_id", name: "ID" },
+          { id: "db1_orders_amount", name: "Amount" },
+          { id: "db1_orders_date", name: "Date" },
+        ],
+      },
     ],
   },
   {
-    role: "Editor", 
-    permissions: [
-      "Database Read", "Database Write",
-      "Table Read", "Table Write"
+    id: "db2",
+    name: "Database2",
+    tables: [
+      {
+        id: "db2_products",
+        name: "ProductTable",
+        fields: [
+          { id: "db2_products_id", name: "ID" },
+          { id: "db2_products_name", name: "Name" },
+          { id: "db2_products_price", name: "Price" },
+        ],
+      },
     ],
+  },
+];
+
+// Permission types
+type PermissionLevel = "None" | "Read" | "Write" | "Delete";
+
+// Role permissions with hierarchy
+interface RolePermissions {
+  role: string;
+  defaultPermission: PermissionLevel;
+  databasePermissions: Record<string, PermissionLevel>;
+  tablePermissions: Record<string, PermissionLevel>;
+  fieldPermissions: Record<string, PermissionLevel>;
+}
+
+const mockRolePermissions: RolePermissions[] = [
+  {
+    role: "Admin",
+    defaultPermission: "Delete",
+    databasePermissions: {},
+    tablePermissions: {},
+    fieldPermissions: {},
+  },
+  {
+    role: "Editor",
+    defaultPermission: "Write",
+    databasePermissions: {},
+    tablePermissions: {},
+    fieldPermissions: {},
   },
   {
     role: "Viewer",
-    permissions: [
-      "Database Read", "Table Read"
-    ],
+    defaultPermission: "Read",
+    databasePermissions: {},
+    tablePermissions: {},
+    fieldPermissions: {},
   },
 ];
 
@@ -138,6 +203,9 @@ const Permissions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"permissions" | "roles">("permissions");
   const [selectedResource, setSelectedResource] = useState<string>("All");
+  const [selectedRole, setSelectedRole] = useState<string>("Admin");
+  const [rolePermissions, setRolePermissions] = useState<RolePermissions[]>(mockRolePermissions);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(["db1", "db2"]));
 
   const resources = ["All", "Database", "Table", "Users", "Settings"];
 
@@ -166,12 +234,118 @@ const Permissions = () => {
       Write: "bg-warning/10 text-warning border-warning/20", 
       Delete: "bg-destructive/10 text-destructive border-destructive/20",
       Manage: "bg-primary/10 text-primary border-primary/20",
+      None: "bg-muted/10 text-muted-foreground border-muted/20",
     };
     return (
       <Badge variant="outline" className={colors[action as keyof typeof colors] || ""}>
         {action}
       </Badge>
     );
+  };
+
+  const getPermissionBadge = (permission: PermissionLevel) => {
+    const colors = {
+      None: "bg-muted/10 text-muted-foreground border-muted/20",
+      Read: "bg-success/10 text-success border-success/20",
+      Write: "bg-warning/10 text-warning border-warning/20",
+      Delete: "bg-destructive/10 text-destructive border-destructive/20",
+    };
+    return (
+      <Badge variant="outline" className={colors[permission] || ""}>
+        {permission}
+      </Badge>
+    );
+  };
+
+  // Get effective permission for an item (considering inheritance)
+  const getEffectivePermission = (
+    itemId: string,
+    itemType: "database" | "table" | "field",
+    databaseId?: string,
+    tableId?: string
+  ): PermissionLevel => {
+    const currentRole = rolePermissions.find(r => r.role === selectedRole);
+    if (!currentRole) return "None";
+
+    // Check specific permission first
+    if (itemType === "field" && currentRole.fieldPermissions[itemId]) {
+      return currentRole.fieldPermissions[itemId];
+    }
+    if (itemType === "table" && currentRole.tablePermissions[itemId]) {
+      return currentRole.tablePermissions[itemId];
+    }
+    if (itemType === "database" && currentRole.databasePermissions[itemId]) {
+      return currentRole.databasePermissions[itemId];
+    }
+
+    // Inherit from parent
+    if (itemType === "field" && tableId) {
+      const tablePermission = getEffectivePermission(tableId, "table", databaseId);
+      if (tablePermission !== currentRole.defaultPermission) return tablePermission;
+    }
+    if ((itemType === "table" || itemType === "field") && databaseId) {
+      const dbPermission = getEffectivePermission(databaseId, "database");
+      if (dbPermission !== currentRole.defaultPermission) return dbPermission;
+    }
+
+    return currentRole.defaultPermission;
+  };
+
+  // Update permission and cascade to children if needed
+  const updatePermission = (
+    itemId: string,
+    itemType: "database" | "table" | "field",
+    newPermission: PermissionLevel,
+    databaseId?: string,
+    tableId?: string
+  ) => {
+    setRolePermissions(prev => prev.map(role => {
+      if (role.role !== selectedRole) return role;
+
+      const updated = { ...role };
+
+      // Set the specific permission
+      if (itemType === "database") {
+        updated.databasePermissions = { ...updated.databasePermissions, [itemId]: newPermission };
+        
+        // If setting database to a specific permission, remove child overrides that match
+        Object.keys(updated.tablePermissions).forEach(tableId => {
+          if (tableId.startsWith(itemId + "_") && updated.tablePermissions[tableId] === newPermission) {
+            delete updated.tablePermissions[tableId];
+          }
+        });
+        Object.keys(updated.fieldPermissions).forEach(fieldId => {
+          if (fieldId.startsWith(itemId + "_") && updated.fieldPermissions[fieldId] === newPermission) {
+            delete updated.fieldPermissions[fieldId];
+          }
+        });
+      } else if (itemType === "table") {
+        updated.tablePermissions = { ...updated.tablePermissions, [itemId]: newPermission };
+        
+        // Remove field overrides that match
+        Object.keys(updated.fieldPermissions).forEach(fieldId => {
+          if (fieldId.startsWith(itemId + "_") && updated.fieldPermissions[fieldId] === newPermission) {
+            delete updated.fieldPermissions[fieldId];
+          }
+        });
+      } else if (itemType === "field") {
+        updated.fieldPermissions = { ...updated.fieldPermissions, [itemId]: newPermission };
+      }
+
+      return updated;
+    }));
+  };
+
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -387,41 +561,177 @@ const Permissions = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6">
-              {mockRolePermissions.map((roleData) => (
-                <Card key={roleData.role} className="bg-gradient-card border-0 shadow-md">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg font-semibold flex items-center">
-                      <Shield className="h-5 w-5 mr-2 text-primary" />
-                      {roleData.role} Role
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {roleData.permissions.map((permission) => {
-                        const permissionData = mockPermissions.find(p => p.name === permission);
-                        return (
-                          <div
-                            key={permission}
-                            className="flex items-center space-x-2 p-3 rounded-lg bg-surface border"
-                          >
-                            {permissionData && getResourceIcon(permissionData.resource)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">
-                                {permission}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {permissionData?.action}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
+            <Card className="bg-gradient-card border-0 shadow-md">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold">Role Matrix</CardTitle>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <label className="text-sm font-medium">Role:</label>
+                      <Select value={selectedRole} onValueChange={setSelectedRole}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rolePermissions.map((role) => (
+                            <SelectItem key={role.role} value={role.role}>
+                              {role.role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    <div className="flex items-center space-x-2">
+                      <label className="text-sm font-medium">Default:</label>
+                      <Select 
+                        value={rolePermissions.find(r => r.role === selectedRole)?.defaultPermission || "None"}
+                        onValueChange={(value: PermissionLevel) => {
+                          setRolePermissions(prev => prev.map(role => 
+                            role.role === selectedRole 
+                              ? { ...role, defaultPermission: value }
+                              : role
+                          ));
+                        }}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="None">None</SelectItem>
+                          <SelectItem value="Read">Read</SelectItem>
+                          <SelectItem value="Write">Write</SelectItem>
+                          <SelectItem value="Delete">Delete</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {mockDatabaseStructure.map((database) => (
+                    <div key={database.id} className="border rounded-lg p-4 bg-surface">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => toggleExpanded(database.id)}
+                          >
+                            {expandedItems.has(database.id) ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Database className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{database.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {getPermissionBadge(getEffectivePermission(database.id, "database"))}
+                          <Select
+                            value={getEffectivePermission(database.id, "database")}
+                            onValueChange={(value: PermissionLevel) => 
+                              updatePermission(database.id, "database", value)
+                            }
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="None">None</SelectItem>
+                              <SelectItem value="Read">Read</SelectItem>
+                              <SelectItem value="Write">Write</SelectItem>
+                              <SelectItem value="Delete">Delete</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {expandedItems.has(database.id) && (
+                        <div className="ml-6 space-y-3">
+                          {database.tables.map((table) => (
+                            <div key={table.id} className="border-l-2 border-muted pl-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => toggleExpanded(table.id)}
+                                  >
+                                    {expandedItems.has(table.id) ? (
+                                      <ChevronDown className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                  <TableIcon className="h-4 w-4 text-secondary" />
+                                  <span className="text-sm font-medium">{table.name}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {getPermissionBadge(getEffectivePermission(table.id, "table", database.id))}
+                                  <Select
+                                    value={getEffectivePermission(table.id, "table", database.id)}
+                                    onValueChange={(value: PermissionLevel) => 
+                                      updatePermission(table.id, "table", value, database.id)
+                                    }
+                                  >
+                                    <SelectTrigger className="w-20">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="None">None</SelectItem>
+                                      <SelectItem value="Read">Read</SelectItem>
+                                      <SelectItem value="Write">Write</SelectItem>
+                                      <SelectItem value="Delete">Delete</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {expandedItems.has(table.id) && (
+                                <div className="ml-4 space-y-2">
+                                  {table.fields.map((field) => (
+                                    <div key={field.id} className="flex items-center justify-between py-1">
+                                      <div className="flex items-center space-x-2">
+                                        <div className="w-4" /> {/* Spacer for alignment */}
+                                        <span className="text-xs text-muted-foreground">•</span>
+                                        <span className="text-sm">{field.name}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        {getPermissionBadge(getEffectivePermission(field.id, "field", database.id, table.id))}
+                                        <Select
+                                          value={getEffectivePermission(field.id, "field", database.id, table.id)}
+                                          onValueChange={(value: PermissionLevel) => 
+                                            updatePermission(field.id, "field", value, database.id, table.id)
+                                          }
+                                        >
+                                          <SelectTrigger className="w-20">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="None">None</SelectItem>
+                                            <SelectItem value="Read">Read</SelectItem>
+                                            <SelectItem value="Write">Write</SelectItem>
+                                            <SelectItem value="Delete">Delete</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </main>
       </div>
