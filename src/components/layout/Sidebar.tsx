@@ -46,7 +46,7 @@ const navigation = [
     badge: "12",
   },
   {
-    name: "Form Builder",
+    name: "Forms",
     icon: Layers,
     href: "/forms",
     current: false,
@@ -155,6 +155,7 @@ export function Sidebar({ className }: SidebarProps) {
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       collapsed && "justify-center px-0"
                     )}
+                    onClick={() => window.location.href = item.href}
                   >
                     <Icon className="h-4 w-4 flex-shrink-0" />
                     {!collapsed && (
@@ -221,6 +222,7 @@ export function Sidebar({ className }: SidebarProps) {
                       "w-full justify-start gap-3 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       collapsed && "justify-center px-0"
                     )}
+                    onClick={() => window.location.href = item.href}
                   >
                     <Icon className="h-4 w-4 flex-shrink-0" />
                     {!collapsed && <span className="flex-1 text-left">{item.name}</span>}

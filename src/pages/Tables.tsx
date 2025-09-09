@@ -149,7 +149,7 @@ const getStatusColor = (status: TableData["status"]) => {
 
 export default function Tables() {
   return (
-    <div className="min-h-screen flex w-full bg-app-background">
+    <div className="min-h-screen flex w-full bg-background">
       <Sidebar />
       
       <main className="flex-1 overflow-auto">
