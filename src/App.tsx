@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import Tables from "./pages/Tables";
 import Forms from "./pages/Forms";
 import FormBuilder from "./pages/FormBuilder";
+import Connections from "./pages/Connections";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +25,8 @@ const App = () => (
           <Route path="/forms" element={<Forms />} />
           <Route path="/forms/new" element={<FormBuilder />} />
           <Route path="/forms/:id/edit" element={<FormBuilder />} />
+          <Route path="/connections" element={<Connections />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

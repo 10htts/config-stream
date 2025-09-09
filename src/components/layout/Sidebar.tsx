@@ -88,7 +88,7 @@ const adminNavigation = [
   {
     name: "Settings",
     icon: Settings,
-    href: "/admin/settings",
+    href: "/settings",
     current: false,
   },
 ];
