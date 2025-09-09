@@ -56,6 +56,10 @@
     --sidebar-accent: 240 10% 20%;
     --sidebar-accent-foreground: 240 5% 85%;
     --sidebar-border: 240 10% 25%;
+    
+    /* Popover & Dropdown */
+    --popover: 255 100% 100%;
+    --popover-foreground: 240 10% 15%;
 
     /* Data Table */
     --table-header: 240 5% 96%;
@@ -125,6 +129,10 @@
     --sidebar-accent: 240 4% 16%;
     --sidebar-accent-foreground: 240 5% 85%;
     --sidebar-border: 240 4% 18%;
+    
+    /* Popover & Dropdown */
+    --popover: 240 10% 6%;
+    --popover-foreground: 240 5% 85%;
 
     --table-header: 240 4% 16%;
     --table-row-hover: 240 10% 8%;
