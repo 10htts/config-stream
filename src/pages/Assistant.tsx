@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,7 +39,7 @@ export default function Assistant() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<UIChange[]>([]);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -267,23 +268,23 @@ export default function Assistant() {
                     disabled={isTyping}
                     className="flex-1"
                   />
-                  <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-                    <DrawerTrigger asChild>
+                  <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                    <SheetTrigger asChild>
                       <Button variant="outline" size="sm" className="flex items-center gap-2">
                         <Eye className="h-4 w-4" />
                         Preview ({pendingChanges.length})
                       </Button>
-                    </DrawerTrigger>
-                    <DrawerContent className="max-h-[80vh]">
-                      <DrawerHeader>
-                        <DrawerTitle>Preview Changes</DrawerTitle>
-                        <DrawerDescription>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-[50vw] max-w-none">
+                      <SheetHeader>
+                        <SheetTitle>Preview Changes</SheetTitle>
+                        <SheetDescription>
                           Review AI suggestions and implement when ready
-                        </DrawerDescription>
-                      </DrawerHeader>
+                        </SheetDescription>
+                      </SheetHeader>
                       
-                      <ScrollArea className="flex-1 px-4">
-                        <div className="space-y-3 pb-4">
+                      <ScrollArea className="h-[calc(100vh-120px)] mt-6">
+                        <div className="space-y-3 pr-4">
                           {pendingChanges.length === 0 ? (
                             <div className="text-center py-8">
                               <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -328,7 +329,7 @@ export default function Assistant() {
                                       size="sm"
                                       onClick={() => {
                                         handleImplementChange(change.id);
-                                        setIsDrawerOpen(false);
+                                        setIsSheetOpen(false);
                                       }}
                                       className="w-full"
                                     >
@@ -360,14 +361,8 @@ export default function Assistant() {
                           )}
                         </div>
                       </ScrollArea>
-                      
-                      <DrawerFooter>
-                        <DrawerClose asChild>
-                          <Button variant="outline">Close</Button>
-                        </DrawerClose>
-                      </DrawerFooter>
-                    </DrawerContent>
-                  </Drawer>
+                    </SheetContent>
+                  </Sheet>
                   <Button onClick={handleSendMessage} disabled={isTyping || !input.trim()}>
                     <Send className="h-4 w-4" />
                   </Button>
