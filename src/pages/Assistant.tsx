@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Code, Sparkles, FileText, Settings, Eye, RotateCcw, Maximize2, Minimize2 } from "lucide-react";
+import { Send, Bot, User, Code, Sparkles, FileText, Settings, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,7 +41,7 @@ export default function Assistant() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<UIChange[]>([]);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -259,118 +259,33 @@ export default function Assistant() {
                         </div>
                         {message.role === "assistant" && (message.type === "suggestion" || message.htmlContent) && (
                           <div className="mt-3">
-                            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                              <SheetTrigger asChild>
+                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                              <DialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="flex items-center gap-2">
                                   <Eye className="h-4 w-4" />
-                                  Preview HTML ({pendingChanges.filter(c => c.htmlPreview).length})
+                                  Preview
                                 </Button>
-                              </SheetTrigger>
-                               <SheetContent 
-                                side="right" 
-                                className="max-w-none w-[50vw]"
-                              >
-                                <SheetHeader>
-                                  <SheetTitle>HTML Preview</SheetTitle>
-                                  <SheetDescription>
-                                    Preview the generated HTML and implement if you like it
-                                  </SheetDescription>
-                                </SheetHeader>
-
+                              </DialogTrigger>
+                              <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh]">
+                                <DialogHeader>
+                                  <DialogTitle>HTML Preview</DialogTitle>
+                                  <DialogDescription>
+                                    Preview the generated HTML
+                                  </DialogDescription>
+                                </DialogHeader>
                                 
-                                <div className="mt-6 space-y-6">
-                                  {/* HTML Preview */}
+                                <div className="flex-1 overflow-auto">
                                   {message.htmlContent && (
-                                    <div className="border border-border rounded-lg overflow-hidden">
+                                    <div className="border border-border rounded-lg overflow-hidden h-full">
                                       <div className="bg-muted px-4 py-2 border-b border-border">
                                         <h3 className="font-medium text-sm">Live Preview</h3>
                                       </div>
-                                      <div className="p-6 bg-gray-50" dangerouslySetInnerHTML={{ __html: message.htmlContent }} />
+                                      <div className="p-6 bg-gray-50 h-full overflow-auto" dangerouslySetInnerHTML={{ __html: message.htmlContent }} />
                                     </div>
                                   )}
-                                  
-                                  {/* Changes List */}
-                                  <ScrollArea className="h-[calc(50vh-120px)]">
-                                    <div className="space-y-3 pr-4">
-                                      {pendingChanges.length === 0 ? (
-                                        <div className="text-center py-8">
-                                          <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                                          <p className="text-sm text-muted-foreground">No pending changes</p>
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            Ask the AI to create forms or suggest improvements
-                                          </p>
-                                        </div>
-                                      ) : (
-                                        pendingChanges.map((change) => (
-                                          <div
-                                            key={change.id}
-                                            className="border border-border rounded-lg p-4 space-y-3"
-                                          >
-                                          <div className="flex items-start justify-between mb-3">
-                                            <Badge 
-                                              variant={
-                                                change.status === "applied" ? "default" :
-                                                change.status === "rejected" ? "destructive" : "secondary"
-                                              }
-                                              className="text-xs"
-                                            >
-                                              {change.status}
-                                            </Badge>
-                                          </div>
-                                          
-                                          <div className="space-y-2">
-                                            <h4 className="font-medium text-sm">
-                                              {change.description}
-                                            </h4>
-                                            <div className="text-xs text-muted-foreground">
-                                              <span className="font-medium">Component:</span> {change.component}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                              <span className="font-medium">Changes:</span> {change.changes}
-                                            </div>
-                                          </div>
-                                          
-                                          {change.status === "pending" && (
-                                            <div className="flex flex-col gap-2 pt-3 border-t border-border">
-                                              <Button
-                                                size="sm"
-                                                onClick={() => {
-                                                  handleImplementChange(change.id);
-                                                  setIsSheetOpen(false);
-                                                }}
-                                                className="w-full"
-                                              >
-                                                <Code className="h-3 w-3 mr-2" />
-                                                Implement HTML
-                                              </Button>
-                                              <div className="flex gap-2">
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  onClick={() => navigator.clipboard.writeText(change.htmlPreview || '')}
-                                                  className="flex-1"
-                                                >
-                                                  Copy HTML
-                                                </Button>
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  onClick={() => handleRejectChange(change.id)}
-                                                  className="flex-1"
-                                                >
-                                                  Reject
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                        ))
-                                      )}
-                                    </div>
-                                  </ScrollArea>
                                 </div>
-                              </SheetContent>
-                            </Sheet>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         )}
                       </div>
