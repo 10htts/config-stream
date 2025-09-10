@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Code, Sparkles, FileText, Settings, Eye } from "lucide-react";
+import { Send, Bot, User, Code, Sparkles, FileText, Settings, Eye, RotateCcw, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Slider } from "@/components/ui/slider";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,8 +42,28 @@ export default function Assistant() {
   const [isTyping, setIsTyping] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<UIChange[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
+  // Preview width controls with localStorage persistence
+  const [previewWidth, setPreviewWidth] = useState(() => {
+    const saved = localStorage.getItem('assistant-preview-width');
+    return saved ? parseInt(saved) : 50;
+  });
+  const [previewUnit, setPreviewUnit] = useState<'vw' | 'px'>(() => {
+    const saved = localStorage.getItem('assistant-preview-unit');
+    return (saved as 'vw' | 'px') || 'vw';
+  });
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Save to localStorage when width/unit changes
+  useEffect(() => {
+    localStorage.setItem('assistant-preview-width', previewWidth.toString());
+  }, [previewWidth]);
+
+  useEffect(() => {
+    localStorage.setItem('assistant-preview-unit', previewUnit);
+  }, [previewUnit]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -264,13 +285,101 @@ export default function Assistant() {
                                   Preview HTML ({pendingChanges.filter(c => c.htmlPreview).length})
                                 </Button>
                               </SheetTrigger>
-                              <SheetContent side="right" className="w-[50vw] max-w-none">
+                              <SheetContent 
+                                side="right" 
+                                className="max-w-none" 
+                                style={{ 
+                                  width: previewUnit === 'vw' 
+                                    ? `${Math.min(previewWidth, 90)}vw` 
+                                    : `${Math.min(previewWidth, window.innerWidth * 0.9)}px`
+                                }}
+                              >
                                 <SheetHeader>
                                   <SheetTitle>HTML Preview</SheetTitle>
                                   <SheetDescription>
                                     Preview the generated HTML and implement if you like it
                                   </SheetDescription>
                                 </SheetHeader>
+
+                                {/* Width Controls */}
+                                <div className="border-b pb-4 mb-6">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-medium">Width Control</h3>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPreviewUnit(previewUnit === 'vw' ? 'px' : 'vw')}
+                                        className="text-xs px-2 py-1 h-6"
+                                      >
+                                        {previewUnit === 'vw' ? <Maximize2 className="h-3 w-3 mr-1" /> : <Minimize2 className="h-3 w-3 mr-1" />}
+                                        {previewUnit}
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setPreviewWidth(50);
+                                          setPreviewUnit('vw');
+                                        }}
+                                        className="text-xs px-2 py-1 h-6"
+                                      >
+                                        <RotateCcw className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                      <Slider
+                                        value={[previewWidth]}
+                                        onValueChange={(value) => setPreviewWidth(value[0])}
+                                        max={previewUnit === 'vw' ? 90 : 1600}
+                                        min={previewUnit === 'vw' ? 20 : 400}
+                                        step={previewUnit === 'vw' ? 5 : 50}
+                                        className="flex-1"
+                                      />
+                                      <div className="flex items-center gap-1">
+                                        <Input
+                                          type="number"
+                                          value={previewWidth}
+                                          onChange={(e) => setPreviewWidth(Number(e.target.value))}
+                                          className="w-16 h-7 text-xs"
+                                          min={previewUnit === 'vw' ? 20 : 400}
+                                          max={previewUnit === 'vw' ? 90 : 1600}
+                                        />
+                                        <span className="text-xs text-muted-foreground">{previewUnit}</span>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-1">
+                                      {previewUnit === 'vw' 
+                                        ? [30, 40, 50, 60, 70, 80].map(width => (
+                                            <Button
+                                              key={width}
+                                              variant={previewWidth === width ? "default" : "outline"}
+                                              size="sm"
+                                              onClick={() => setPreviewWidth(width)}
+                                              className="text-xs px-2 py-1 h-6"
+                                            >
+                                              {width}%
+                                            </Button>
+                                          ))
+                                        : [600, 800, 1000, 1200, 1400].map(width => (
+                                            <Button
+                                              key={width}
+                                              variant={previewWidth === width ? "default" : "outline"}
+                                              size="sm"
+                                              onClick={() => setPreviewWidth(width)}
+                                              className="text-xs px-2 py-1 h-6"
+                                            >
+                                              {width}px
+                                            </Button>
+                                          ))
+                                      }
+                                    </div>
+                                  </div>
+                                </div>
                                 
                                 <div className="mt-6 space-y-6">
                                   {/* HTML Preview */}
