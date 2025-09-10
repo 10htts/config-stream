@@ -266,25 +266,37 @@ export default function Assistant() {
                                   Preview
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh]">
-                                <DialogHeader>
-                                  <DialogTitle>HTML Preview</DialogTitle>
-                                  <DialogDescription>
-                                    Preview the generated HTML
-                                  </DialogDescription>
-                                </DialogHeader>
-                                
-                                <div className="flex-1 overflow-auto">
-                                  {message.htmlContent && (
-                                    <div className="border border-border rounded-lg overflow-hidden h-full">
-                                      <div className="bg-muted px-4 py-2 border-b border-border">
-                                        <h3 className="font-medium text-sm">Live Preview</h3>
+                                <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh]">
+                                  <DialogHeader>
+                                    <DialogTitle>HTML Preview</DialogTitle>
+                                    <DialogDescription>
+                                      Preview the generated HTML
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  
+                                  <div className="flex-1 overflow-auto">
+                                    {message.htmlContent && (
+                                      <div className="border border-border rounded-lg overflow-hidden h-full">
+                                        <div className="bg-muted px-4 py-2 border-b border-border flex items-center justify-between">
+                                          <h3 className="font-medium text-sm">Live Preview</h3>
+                                          <Button 
+                                            onClick={() => {
+                                              const changeId = pendingChanges.find(c => c.htmlPreview === message.htmlContent)?.id || Date.now().toString();
+                                              handleImplementChange(changeId);
+                                              setIsDialogOpen(false);
+                                            }}
+                                            className="bg-green-600 hover:bg-green-700 text-white"
+                                            size="sm"
+                                          >
+                                            <Code className="h-4 w-4 mr-2" />
+                                            Implement
+                                          </Button>
+                                        </div>
+                                        <div className="p-6 bg-gray-50 h-full overflow-auto" dangerouslySetInnerHTML={{ __html: message.htmlContent }} />
                                       </div>
-                                      <div className="p-6 bg-gray-50 h-full overflow-auto" dangerouslySetInnerHTML={{ __html: message.htmlContent }} />
-                                    </div>
-                                  )}
-                                </div>
-                              </DialogContent>
+                                    )}
+                                  </div>
+                                </DialogContent>
                             </Dialog>
                           </div>
                         )}
