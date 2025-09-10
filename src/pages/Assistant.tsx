@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Code, Sparkles, FileText } from "lucide-react";
+import { Send, Bot, User, Code, Sparkles, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -37,8 +37,6 @@ export default function Assistant() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<UIChange[]>([]);
-  const [apiKey, setApiKey] = useState("");
-  const [showApiKeyInput, setShowApiKeyInput] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -65,14 +63,6 @@ export default function Assistant() {
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
-    if (!apiKey && showApiKeyInput) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your OpenAI API key to use the AI assistant.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -127,6 +117,20 @@ export default function Assistant() {
     }, 1500);
   };
 
+  const handleImplementChange = (changeId: string) => {
+    setPendingChanges(prev => 
+      prev.map(change => 
+        change.id === changeId 
+          ? { ...change, status: "applied" }
+          : change
+      )
+    );
+    toast({
+      title: "Change Implemented",
+      description: "The UI change has been successfully implemented in your codebase.",
+    });
+  };
+
   const handleApplyChange = (changeId: string) => {
     setPendingChanges(prev => 
       prev.map(change => 
@@ -136,8 +140,8 @@ export default function Assistant() {
       )
     );
     toast({
-      title: "Change Applied",
-      description: "The UI change has been implemented successfully.",
+      title: "Change Previewed", 
+      description: "The change has been prepared for implementation.",
     });
   };
 
@@ -171,16 +175,24 @@ export default function Assistant() {
       <main className="flex-1 flex flex-col">
         <header className="border-b border-border bg-card/50 p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">AI Assistant</h1>
-              <p className="text-muted-foreground mt-1">
-                Context-aware chat for UI improvements and live implementation
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">AI Assistant</h1>
+                <p className="text-muted-foreground mt-1">
+                  Context-aware chat for UI improvements and live implementation
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="flex items-center gap-2">
+                  <Sparkles className="h-3 w-3" />
+                  Live Updates Enabled
+                </Badge>
+                <Button variant="outline" size="sm" onClick={() => window.location.href = '/settings'}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  AI Settings
+                </Button>
+              </div>
             </div>
-            <Badge variant="outline" className="flex items-center gap-2">
-              <Sparkles className="h-3 w-3" />
-              Live Updates Enabled
-            </Badge>
           </div>
         </header>
 
@@ -246,33 +258,6 @@ export default function Assistant() {
               </ScrollArea>
               
               <div className="p-4 border-t border-border">
-                {showApiKeyInput && (
-                  <div className="mb-3">
-                    <Input
-                      type="password"
-                      placeholder="Enter your OpenAI API key..."
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="mb-2"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        if (apiKey) {
-                          setShowApiKeyInput(false);
-                          toast({
-                            title: "API Key Set",
-                            description: "You can now use the AI assistant.",
-                          });
-                        }
-                      }}
-                    >
-                      Set API Key
-                    </Button>
-                  </div>
-                )}
-                
                 <div className="flex gap-2">
                   <Input
                     placeholder="Ask about UI improvements, analyze current page, or request changes..."
@@ -293,9 +278,9 @@ export default function Assistant() {
           <div className="w-80">
             <Card>
               <div className="p-4 border-b border-border">
-                <h2 className="font-semibold text-foreground">Pending Changes</h2>
+                <h2 className="font-semibold text-foreground">Preview Changes</h2>
                 <p className="text-sm text-muted-foreground">
-                  Review and apply suggested improvements
+                  Review AI suggestions and implement when ready
                 </p>
               </div>
               
@@ -336,10 +321,18 @@ export default function Assistant() {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              onClick={() => handleApplyChange(change.id)}
+                              onClick={() => handleImplementChange(change.id)}
                               className="flex-1"
                             >
-                              Apply
+                              <Code className="h-3 w-3 mr-1" />
+                              Implement
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApplyChange(change.id)}
+                            >
+                              Preview
                             </Button>
                             <Button
                               size="sm"
