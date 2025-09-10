@@ -243,11 +243,11 @@ export default function Assistant() {
                       )}
                       
                       <div
-                        className={`max-w-[80%] rounded-lg p-3 relative ${
+                        className={`max-w-[80%] rounded-lg p-3 ${
                           message.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
-                        } ${message.role === "assistant" && (message.type === "suggestion" || message.htmlContent) ? "pb-12" : ""}`}
+                        }`}
                       >
                         <div className="whitespace-pre-wrap text-sm">
                           {message.content}
@@ -256,7 +256,7 @@ export default function Assistant() {
                           {message.timestamp.toLocaleTimeString()}
                         </div>
                         {message.role === "assistant" && (message.type === "suggestion" || message.htmlContent) && (
-                          <div className="absolute bottom-3 right-3">
+                          <div className="mt-3">
                             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                               <SheetTrigger asChild>
                                 <Button variant="outline" size="sm" className="flex items-center gap-2">
