@@ -21,7 +21,6 @@ import {
 import {
   Database,
   Plus,
-  Search,
   MoreHorizontal,
   Eye,
   Edit,
@@ -33,8 +32,14 @@ import {
   Users,
   FileText,
   ShoppingCart,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from "react";
 
 interface TableData {
   id: string;
@@ -147,7 +152,106 @@ const getStatusColor = (status: TableData["status"]) => {
   }
 };
 
+type SortField = keyof TableData | null;
+type SortDirection = 'asc' | 'desc' | null;
+
+interface ColumnFilter {
+  field: keyof TableData;
+  values: string[];
+}
+
 export default function Tables() {
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [filters, setFilters] = useState<ColumnFilter[]>([]);
+
+  const handleSort = (field: keyof TableData) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortField(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection('asc');
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleFilter = (field: keyof TableData, value: string, checked: boolean) => {
+    setFilters(prev => {
+      const existingFilter = prev.find(f => f.field === field);
+      if (existingFilter) {
+        if (checked) {
+          return prev.map(f => 
+            f.field === field 
+              ? { ...f, values: [...f.values, value] }
+              : f
+          );
+        } else {
+          const newValues = existingFilter.values.filter(v => v !== value);
+          if (newValues.length === 0) {
+            return prev.filter(f => f.field !== field);
+          }
+          return prev.map(f => 
+            f.field === field 
+              ? { ...f, values: newValues }
+              : f
+          );
+        }
+      } else if (checked) {
+        return [...prev, { field, values: [value] }];
+      }
+      return prev;
+    });
+  };
+
+  const getSortIcon = (field: keyof TableData) => {
+    if (sortField !== field) {
+      return <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />;
+    }
+    if (sortDirection === 'asc') {
+      return <ChevronUp className="h-4 w-4 text-primary" />;
+    } else if (sortDirection === 'desc') {
+      return <ChevronDown className="h-4 w-4 text-primary" />;
+    }
+    return <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  const getUniqueValues = (field: keyof TableData) => {
+    return [...new Set(mockTables.map(table => String(table[field])))];
+  };
+
+  const isFilterActive = (field: keyof TableData) => {
+    return filters.some(f => f.field === field);
+  };
+
+  // Apply filters and sorting
+  let filteredTables = mockTables.filter(table => {
+    return filters.every(filter => {
+      if (filter.values.length === 0) return true;
+      return filter.values.includes(String(table[filter.field]));
+    });
+  });
+
+  if (sortField && sortDirection) {
+    filteredTables.sort((a, b) => {
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      
+      let comparison = 0;
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        comparison = aVal.localeCompare(bVal);
+      } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+        comparison = aVal - bVal;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }
   return (
     <div className="min-h-screen flex w-full bg-background">
       <Sidebar />
@@ -170,21 +274,10 @@ export default function Tables() {
             </Button>
           </div>
 
-          {/* Search and Filters */}
+          {/* Export Actions */}
           <Card className="bg-gradient-card border-0 shadow-sm">
             <CardContent className="p-4">
-              <div className="flex items-center space-x-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search tables..."
-                    className="pl-10 bg-form-background border-input-border"
-                  />
-                </div>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
+              <div className="flex items-center justify-end space-x-4">
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
                   Export
@@ -199,7 +292,7 @@ export default function Tables() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold">Database Tables</CardTitle>
                 <Badge variant="outline" className="text-xs">
-                  {mockTables.length} tables
+                  {filteredTables.length} of {mockTables.length} tables
                 </Badge>
               </div>
             </CardHeader>
@@ -208,18 +301,214 @@ export default function Tables() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-table-header hover:bg-table-header">
-                      <TableHead className="w-[300px]">Table</TableHead>
-                      <TableHead>Connection</TableHead>
-                      <TableHead>Schema</TableHead>
-                      <TableHead>Rows</TableHead>
-                      <TableHead>Columns</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Modified</TableHead>
+                      <TableHead className="w-[300px]">
+                        <div className="flex items-center justify-between">
+                          <span>Table</span>
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              onClick={() => handleSort('name')}
+                            >
+                              {getSortIcon('name')}
+                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                >
+                                  <Filter className={`h-3 w-3 ${isFilterActive('name') ? 'text-primary' : 'text-muted-foreground'}`} />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56" align="start">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm">Filter by Table</h4>
+                                  {getUniqueValues('name').map(value => (
+                                    <div key={value} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`name-${value}`}
+                                        checked={filters.find(f => f.field === 'name')?.values.includes(value) || false}
+                                        onCheckedChange={(checked) => handleFilter('name', value, checked as boolean)}
+                                      />
+                                      <label htmlFor={`name-${value}`} className="text-sm">{value}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center justify-between">
+                          <span>Connection</span>
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              onClick={() => handleSort('connection')}
+                            >
+                              {getSortIcon('connection')}
+                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                >
+                                  <Filter className={`h-3 w-3 ${isFilterActive('connection') ? 'text-primary' : 'text-muted-foreground'}`} />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56" align="start">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm">Filter by Connection</h4>
+                                  {getUniqueValues('connection').map(value => (
+                                    <div key={value} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`connection-${value}`}
+                                        checked={filters.find(f => f.field === 'connection')?.values.includes(value) || false}
+                                        onCheckedChange={(checked) => handleFilter('connection', value, checked as boolean)}
+                                      />
+                                      <label htmlFor={`connection-${value}`} className="text-sm">{value}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center justify-between">
+                          <span>Schema</span>
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              onClick={() => handleSort('schema')}
+                            >
+                              {getSortIcon('schema')}
+                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                >
+                                  <Filter className={`h-3 w-3 ${isFilterActive('schema') ? 'text-primary' : 'text-muted-foreground'}`} />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56" align="start">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm">Filter by Schema</h4>
+                                  {getUniqueValues('schema').map(value => (
+                                    <div key={value} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`schema-${value}`}
+                                        checked={filters.find(f => f.field === 'schema')?.values.includes(value) || false}
+                                        onCheckedChange={(checked) => handleFilter('schema', value, checked as boolean)}
+                                      />
+                                      <label htmlFor={`schema-${value}`} className="text-sm">{value}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center justify-between">
+                          <span>Rows</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-muted"
+                            onClick={() => handleSort('rows')}
+                          >
+                            {getSortIcon('rows')}
+                          </Button>
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center justify-between">
+                          <span>Columns</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-muted"
+                            onClick={() => handleSort('columns')}
+                          >
+                            {getSortIcon('columns')}
+                          </Button>
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center justify-between">
+                          <span>Status</span>
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-muted"
+                              onClick={() => handleSort('status')}
+                            >
+                              {getSortIcon('status')}
+                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                >
+                                  <Filter className={`h-3 w-3 ${isFilterActive('status') ? 'text-primary' : 'text-muted-foreground'}`} />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56" align="start">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm">Filter by Status</h4>
+                                  {getUniqueValues('status').map(value => (
+                                    <div key={value} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`status-${value}`}
+                                        checked={filters.find(f => f.field === 'status')?.values.includes(value) || false}
+                                        onCheckedChange={(checked) => handleFilter('status', value, checked as boolean)}
+                                      />
+                                      <label htmlFor={`status-${value}`} className="text-sm capitalize">{value}</label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center justify-between">
+                          <span>Last Modified</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-muted"
+                            onClick={() => handleSort('lastModified')}
+                          >
+                            {getSortIcon('lastModified')}
+                          </Button>
+                        </div>
+                      </TableHead>
                       <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockTables.map((table) => (
+                    {filteredTables.map((table) => (
                       <TableRow key={table.id} className="hover:bg-table-row-hover">
                         <TableCell>
                           <div className="flex items-center space-x-3">
