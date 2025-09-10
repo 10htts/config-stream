@@ -15,6 +15,7 @@ interface Message {
   role: "user" | "assistant";
   timestamp: Date;
   type?: "suggestion" | "implementation" | "analysis";
+  htmlContent?: string;
 }
 
 interface UIChange {
@@ -22,6 +23,7 @@ interface UIChange {
   description: string;
   component: string;
   changes: string;
+  htmlPreview?: string;
   status: "pending" | "applied" | "rejected";
 }
 
@@ -81,29 +83,51 @@ export default function Assistant() {
     setTimeout(() => {
       const analysis = analyzeCurrentPage();
       let response = "";
+      let htmlContent = "";
       let messageType: "suggestion" | "implementation" | "analysis" = "analysis";
 
       if (input.toLowerCase().includes("analyze") || input.toLowerCase().includes("current page")) {
         response = `I can see you're on the ${analysis.route} page. This page contains: ${analysis.components.join(", ")}. Here are some suggestions:\n\n${analysis.suggestions.map(s => `• ${s}`).join("\n")}`;
         messageType = "analysis";
-      } else if (input.toLowerCase().includes("improve") || input.toLowerCase().includes("suggest")) {
-        response = "Based on your current page, I suggest adding a search bar to the connections table and improving the mobile layout. Would you like me to implement these changes?";
+      } else if (input.toLowerCase().includes("improve") || input.toLowerCase().includes("suggest") || input.toLowerCase().includes("form")) {
+        response = "Based on your request, I've created an improved form with better styling and functionality.";
+        htmlContent = `
+          <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Contact Form</h2>
+            <form class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your name">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your message"></textarea>
+              </div>
+              <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200">Submit</button>
+            </form>
+          </div>
+        `;
         messageType = "suggestion";
         
-        // Add pending changes
+        // Add pending changes with HTML preview
         const newChange: UIChange = {
           id: Date.now().toString(),
-          description: "Add search functionality to connections table",
-          component: "ConnectionsTable",
-          changes: "Add search input and filtering logic",
+          description: "Enhanced contact form with improved styling",
+          component: "ContactForm",
+          changes: "Modern form design with focus states and responsive layout",
+          htmlPreview: htmlContent,
           status: "pending"
         };
         setPendingChanges(prev => [...prev, newChange]);
       } else if (input.toLowerCase().includes("implement") || input.toLowerCase().includes("apply")) {
-        response = "I'll implement the suggested changes now. This includes adding search functionality and improving mobile responsiveness.";
+        response = "I'll implement the suggested changes now. This includes adding the new form design with improved styling.";
         messageType = "implementation";
       } else {
-        response = `I understand you want to: "${input}". I can help you implement UI changes, analyze your current page structure, or suggest improvements. What specific changes would you like me to make?`;
+        response = `I understand you want to: "${input}". I can help you create forms, analyze your current page structure, or suggest improvements. What specific changes would you like me to make?`;
       }
 
       const assistantMessage: Message = {
@@ -111,7 +135,8 @@ export default function Assistant() {
         content: response,
         role: "assistant",
         timestamp: new Date(),
-        type: messageType
+        type: messageType,
+        htmlContent: htmlContent || undefined
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -227,39 +252,51 @@ export default function Assistant() {
                         <div className="whitespace-pre-wrap text-sm">
                           {message.content}
                         </div>
-                        {message.role === "assistant" && message.type === "suggestion" && pendingChanges.length > 0 && (
+                        {message.role === "assistant" && (message.type === "suggestion" || message.htmlContent) && (
                           <div className="mt-3 pt-3 border-t border-border/50">
                             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                               <SheetTrigger asChild>
                                 <Button variant="outline" size="sm" className="flex items-center gap-2">
                                   <Eye className="h-4 w-4" />
-                                  Preview Changes ({pendingChanges.length})
+                                  Preview HTML ({pendingChanges.filter(c => c.htmlPreview).length})
                                 </Button>
                               </SheetTrigger>
                               <SheetContent side="right" className="w-[50vw] max-w-none">
                                 <SheetHeader>
-                                  <SheetTitle>Preview Changes</SheetTitle>
+                                  <SheetTitle>HTML Preview</SheetTitle>
                                   <SheetDescription>
-                                    Review AI suggestions and implement when ready
+                                    Preview the generated HTML and implement if you like it
                                   </SheetDescription>
                                 </SheetHeader>
                                 
-                                <ScrollArea className="h-[calc(100vh-120px)] mt-6">
-                                  <div className="space-y-3 pr-4">
-                                    {pendingChanges.length === 0 ? (
-                                      <div className="text-center py-8">
-                                        <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                                        <p className="text-sm text-muted-foreground">No pending changes</p>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          Ask the AI to suggest improvements to see previews here
-                                        </p>
+                                <div className="mt-6 space-y-6">
+                                  {/* HTML Preview */}
+                                  {message.htmlContent && (
+                                    <div className="border border-border rounded-lg overflow-hidden">
+                                      <div className="bg-muted px-4 py-2 border-b border-border">
+                                        <h3 className="font-medium text-sm">Live Preview</h3>
                                       </div>
-                                    ) : (
-                                      pendingChanges.map((change) => (
-                                        <div
-                                          key={change.id}
-                                          className="border border-border rounded-lg p-4 space-y-3"
-                                        >
+                                      <div className="p-6 bg-gray-50" dangerouslySetInnerHTML={{ __html: message.htmlContent }} />
+                                    </div>
+                                  )}
+                                  
+                                  {/* Changes List */}
+                                  <ScrollArea className="h-[calc(50vh-120px)]">
+                                    <div className="space-y-3 pr-4">
+                                      {pendingChanges.length === 0 ? (
+                                        <div className="text-center py-8">
+                                          <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                                          <p className="text-sm text-muted-foreground">No pending changes</p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Ask the AI to create forms or suggest improvements
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        pendingChanges.map((change) => (
+                                          <div
+                                            key={change.id}
+                                            className="border border-border rounded-lg p-4 space-y-3"
+                                          >
                                           <div className="flex items-start justify-between mb-3">
                                             <Badge 
                                               variant={
@@ -295,16 +332,16 @@ export default function Assistant() {
                                                 className="w-full"
                                               >
                                                 <Code className="h-3 w-3 mr-2" />
-                                                Implement Change
+                                                Implement HTML
                                               </Button>
                                               <div className="flex gap-2">
                                                 <Button
                                                   size="sm"
                                                   variant="outline"
-                                                  onClick={() => handleApplyChange(change.id)}
+                                                  onClick={() => navigator.clipboard.writeText(change.htmlPreview || '')}
                                                   className="flex-1"
                                                 >
-                                                  Preview
+                                                  Copy HTML
                                                 </Button>
                                                 <Button
                                                   size="sm"
@@ -318,10 +355,11 @@ export default function Assistant() {
                                             </div>
                                           )}
                                         </div>
-                                      ))
-                                    )}
-                                  </div>
-                                </ScrollArea>
+                                        ))
+                                      )}
+                                    </div>
+                                  </ScrollArea>
+                                </div>
                               </SheetContent>
                             </Sheet>
                           </div>
