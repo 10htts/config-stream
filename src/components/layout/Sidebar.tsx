@@ -60,7 +60,7 @@ const navigation = [
   {
     name: "AI Assistant",
     icon: Bot,
-    href: "/assist",
+    href: "/assistant",
     current: false,
     badge: "New",
   },

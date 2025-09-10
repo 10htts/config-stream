@@ -11,6 +11,7 @@ import Connections from "./pages/Connections";
 import Settings from "./pages/Settings";
 import UsersRoles from "./pages/UsersRoles";
 import Permissions from "./pages/Permissions";
+import Assistant from "./pages/Assistant";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/forms/:id/edit" element={<FormBuilder />} />
           <Route path="/connections" element={<Connections />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/assistant" element={<Assistant />} />
           <Route path="/admin/users" element={<UsersRoles />} />
           <Route path="/admin/permissions" element={<Permissions />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
