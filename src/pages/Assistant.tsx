@@ -247,7 +247,7 @@ export default function Assistant() {
                           message.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
-                        }`}
+                        } ${message.role === "assistant" && (message.type === "suggestion" || message.htmlContent) ? "pb-12" : ""}`}
                       >
                         <div className="whitespace-pre-wrap text-sm">
                           {message.content}
