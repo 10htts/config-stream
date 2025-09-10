@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 
@@ -228,6 +227,105 @@ export default function Assistant() {
                         <div className="whitespace-pre-wrap text-sm">
                           {message.content}
                         </div>
+                        {message.role === "assistant" && message.type === "suggestion" && pendingChanges.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                              <SheetTrigger asChild>
+                                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                                  <Eye className="h-4 w-4" />
+                                  Preview Changes ({pendingChanges.length})
+                                </Button>
+                              </SheetTrigger>
+                              <SheetContent side="right" className="w-[50vw] max-w-none">
+                                <SheetHeader>
+                                  <SheetTitle>Preview Changes</SheetTitle>
+                                  <SheetDescription>
+                                    Review AI suggestions and implement when ready
+                                  </SheetDescription>
+                                </SheetHeader>
+                                
+                                <ScrollArea className="h-[calc(100vh-120px)] mt-6">
+                                  <div className="space-y-3 pr-4">
+                                    {pendingChanges.length === 0 ? (
+                                      <div className="text-center py-8">
+                                        <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                                        <p className="text-sm text-muted-foreground">No pending changes</p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          Ask the AI to suggest improvements to see previews here
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      pendingChanges.map((change) => (
+                                        <div
+                                          key={change.id}
+                                          className="border border-border rounded-lg p-4 space-y-3"
+                                        >
+                                          <div className="flex items-start justify-between mb-3">
+                                            <Badge 
+                                              variant={
+                                                change.status === "applied" ? "default" :
+                                                change.status === "rejected" ? "destructive" : "secondary"
+                                              }
+                                              className="text-xs"
+                                            >
+                                              {change.status}
+                                            </Badge>
+                                          </div>
+                                          
+                                          <div className="space-y-2">
+                                            <h4 className="font-medium text-sm">
+                                              {change.description}
+                                            </h4>
+                                            <div className="text-xs text-muted-foreground">
+                                              <span className="font-medium">Component:</span> {change.component}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                              <span className="font-medium">Changes:</span> {change.changes}
+                                            </div>
+                                          </div>
+                                          
+                                          {change.status === "pending" && (
+                                            <div className="flex flex-col gap-2 pt-3 border-t border-border">
+                                              <Button
+                                                size="sm"
+                                                onClick={() => {
+                                                  handleImplementChange(change.id);
+                                                  setIsSheetOpen(false);
+                                                }}
+                                                className="w-full"
+                                              >
+                                                <Code className="h-3 w-3 mr-2" />
+                                                Implement Change
+                                              </Button>
+                                              <div className="flex gap-2">
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => handleApplyChange(change.id)}
+                                                  className="flex-1"
+                                                >
+                                                  Preview
+                                                </Button>
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => handleRejectChange(change.id)}
+                                                  className="flex-1"
+                                                >
+                                                  Reject
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </ScrollArea>
+                              </SheetContent>
+                            </Sheet>
+                          </div>
+                        )}
                         <div className="text-xs opacity-70 mt-1">
                           {message.timestamp.toLocaleTimeString()}
                         </div>
@@ -268,101 +366,6 @@ export default function Assistant() {
                     disabled={isTyping}
                     className="flex-1"
                   />
-                  <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <Eye className="h-4 w-4" />
-                        Preview ({pendingChanges.length})
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-[50vw] max-w-none">
-                      <SheetHeader>
-                        <SheetTitle>Preview Changes</SheetTitle>
-                        <SheetDescription>
-                          Review AI suggestions and implement when ready
-                        </SheetDescription>
-                      </SheetHeader>
-                      
-                      <ScrollArea className="h-[calc(100vh-120px)] mt-6">
-                        <div className="space-y-3 pr-4">
-                          {pendingChanges.length === 0 ? (
-                            <div className="text-center py-8">
-                              <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                              <p className="text-sm text-muted-foreground">No pending changes</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Ask the AI to suggest improvements to see previews here
-                              </p>
-                            </div>
-                          ) : (
-                            pendingChanges.map((change) => (
-                              <div
-                                key={change.id}
-                                className="border border-border rounded-lg p-4 space-y-3"
-                              >
-                                <div className="flex items-start justify-between mb-3">
-                                  <Badge 
-                                    variant={
-                                      change.status === "applied" ? "default" :
-                                      change.status === "rejected" ? "destructive" : "secondary"
-                                    }
-                                    className="text-xs"
-                                  >
-                                    {change.status}
-                                  </Badge>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <h4 className="font-medium text-sm">
-                                    {change.description}
-                                  </h4>
-                                  <div className="text-xs text-muted-foreground">
-                                    <span className="font-medium">Component:</span> {change.component}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    <span className="font-medium">Changes:</span> {change.changes}
-                                  </div>
-                                </div>
-                                
-                                {change.status === "pending" && (
-                                  <div className="flex flex-col gap-2 pt-3 border-t border-border">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        handleImplementChange(change.id);
-                                        setIsSheetOpen(false);
-                                      }}
-                                      className="w-full"
-                                    >
-                                      <Code className="h-3 w-3 mr-2" />
-                                      Implement Change
-                                    </Button>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleApplyChange(change.id)}
-                                        className="flex-1"
-                                      >
-                                        Preview
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleRejectChange(change.id)}
-                                        className="flex-1"
-                                      >
-                                        Reject
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </SheetContent>
-                  </Sheet>
                   <Button onClick={handleSendMessage} disabled={isTyping || !input.trim()}>
                     <Send className="h-4 w-4" />
                   </Button>
