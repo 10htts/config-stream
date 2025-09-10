@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
@@ -196,10 +197,10 @@ export default function Assistant() {
           </div>
         </header>
 
-        <div className="flex-1 flex gap-6 p-6">
+        <ResizablePanelGroup direction="horizontal" className="gap-6">
           {/* Chat Interface */}
-          <div className="flex-1 flex flex-col">
-            <Card className="flex-1 flex flex-col">
+          <ResizablePanel defaultSize={70} minSize={50}>
+            <Card className="h-full flex flex-col">
               <div className="p-4 border-b border-border">
                 <h2 className="font-semibold text-foreground">Chat</h2>
               </div>
@@ -272,11 +273,13 @@ export default function Assistant() {
                 </div>
               </div>
             </Card>
-          </div>
+          </ResizablePanel>
 
-          {/* Pending Changes Sidebar */}
-          <div className="w-80">
-            <Card>
+          <ResizableHandle withHandle />
+
+          {/* Preview Changes Panel */}
+          <ResizablePanel defaultSize={30} minSize={25} maxSize={60}>
+            <Card className="h-full flex flex-col">
               <div className="p-4 border-b border-border">
                 <h2 className="font-semibold text-foreground">Preview Changes</h2>
                 <p className="text-sm text-muted-foreground">
@@ -284,63 +287,74 @@ export default function Assistant() {
                 </p>
               </div>
               
-              <ScrollArea className="max-h-96">
+              <ScrollArea className="flex-1">
                 <div className="p-4 space-y-3">
                   {pendingChanges.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No pending changes
-                    </p>
+                    <div className="text-center py-8">
+                      <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">No pending changes</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Ask the AI to suggest improvements to see previews here
+                      </p>
+                    </div>
                   ) : (
                     pendingChanges.map((change) => (
                       <div
                         key={change.id}
-                        className="border border-border rounded-lg p-3"
+                        className="border border-border rounded-lg p-4 space-y-3"
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-3">
                           <Badge 
                             variant={
                               change.status === "applied" ? "default" :
                               change.status === "rejected" ? "destructive" : "secondary"
                             }
+                            className="text-xs"
                           >
                             {change.status}
                           </Badge>
                         </div>
                         
-                        <h4 className="font-medium text-sm mb-1">
-                          {change.description}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Component: {change.component}
-                        </p>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          {change.changes}
-                        </p>
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">
+                            {change.description}
+                          </h4>
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Component:</span> {change.component}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Changes:</span> {change.changes}
+                          </div>
+                        </div>
                         
                         {change.status === "pending" && (
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2 pt-3 border-t border-border">
                             <Button
                               size="sm"
                               onClick={() => handleImplementChange(change.id)}
-                              className="flex-1"
+                              className="w-full"
                             >
-                              <Code className="h-3 w-3 mr-1" />
-                              Implement
+                              <Code className="h-3 w-3 mr-2" />
+                              Implement Change
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleApplyChange(change.id)}
-                            >
-                              Preview
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRejectChange(change.id)}
-                            >
-                              Reject
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleApplyChange(change.id)}
+                                className="flex-1"
+                              >
+                                Preview
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRejectChange(change.id)}
+                                className="flex-1"
+                              >
+                                Reject
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -349,8 +363,8 @@ export default function Assistant() {
                 </div>
               </ScrollArea>
             </Card>
-          </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </main>
     </div>
   );
