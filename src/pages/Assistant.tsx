@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Code, Sparkles, FileText, Settings, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Send, Bot, User, Code, Sparkles, FileText, Settings, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +38,7 @@ export default function Assistant() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<UIChange[]>([]);
-  const [showPreviewPanel, setShowPreviewPanel] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -183,15 +184,6 @@ export default function Assistant() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowPreviewPanel(!showPreviewPanel)}
-                className="flex items-center gap-2"
-              >
-                {showPreviewPanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-                {showPreviewPanel ? "Hide" : "Show"} Preview
-              </Button>
               <Badge variant="outline" className="flex items-center gap-2">
                 <Sparkles className="h-3 w-3" />
                 Live Updates Enabled
@@ -204,9 +196,9 @@ export default function Assistant() {
           </div>
         </header>
 
-        <div className={`flex-1 flex gap-6 p-6 ${!showPreviewPanel ? 'justify-center' : ''}`}>
+        <div className="flex-1 flex justify-center p-6">
           {/* Chat Interface */}
-          <div className={`${showPreviewPanel ? 'flex-1' : 'max-w-4xl w-full'} flex flex-col`}>
+          <div className="max-w-4xl w-full flex flex-col">
             <Card className="h-full flex flex-col">
               <div className="p-4 border-b border-border">
                 <h2 className="font-semibold text-foreground">Chat</h2>
@@ -273,7 +265,109 @@ export default function Assistant() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                     disabled={isTyping}
+                    className="flex-1"
                   />
+                  <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+                    <DrawerTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Preview ({pendingChanges.length})
+                      </Button>
+                    </DrawerTrigger>
+                    <DrawerContent className="max-h-[80vh]">
+                      <DrawerHeader>
+                        <DrawerTitle>Preview Changes</DrawerTitle>
+                        <DrawerDescription>
+                          Review AI suggestions and implement when ready
+                        </DrawerDescription>
+                      </DrawerHeader>
+                      
+                      <ScrollArea className="flex-1 px-4">
+                        <div className="space-y-3 pb-4">
+                          {pendingChanges.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                              <p className="text-sm text-muted-foreground">No pending changes</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Ask the AI to suggest improvements to see previews here
+                              </p>
+                            </div>
+                          ) : (
+                            pendingChanges.map((change) => (
+                              <div
+                                key={change.id}
+                                className="border border-border rounded-lg p-4 space-y-3"
+                              >
+                                <div className="flex items-start justify-between mb-3">
+                                  <Badge 
+                                    variant={
+                                      change.status === "applied" ? "default" :
+                                      change.status === "rejected" ? "destructive" : "secondary"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {change.status}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm">
+                                    {change.description}
+                                  </h4>
+                                  <div className="text-xs text-muted-foreground">
+                                    <span className="font-medium">Component:</span> {change.component}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    <span className="font-medium">Changes:</span> {change.changes}
+                                  </div>
+                                </div>
+                                
+                                {change.status === "pending" && (
+                                  <div className="flex flex-col gap-2 pt-3 border-t border-border">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        handleImplementChange(change.id);
+                                        setIsDrawerOpen(false);
+                                      }}
+                                      className="w-full"
+                                    >
+                                      <Code className="h-3 w-3 mr-2" />
+                                      Implement Change
+                                    </Button>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleApplyChange(change.id)}
+                                        className="flex-1"
+                                      >
+                                        Preview
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleRejectChange(change.id)}
+                                        className="flex-1"
+                                      >
+                                        Reject
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </ScrollArea>
+                      
+                      <DrawerFooter>
+                        <DrawerClose asChild>
+                          <Button variant="outline">Close</Button>
+                        </DrawerClose>
+                      </DrawerFooter>
+                    </DrawerContent>
+                  </Drawer>
                   <Button onClick={handleSendMessage} disabled={isTyping || !input.trim()}>
                     <Send className="h-4 w-4" />
                   </Button>
@@ -281,96 +375,6 @@ export default function Assistant() {
               </div>
             </Card>
           </div>
-
-          {/* Preview Changes Panel */}
-          {showPreviewPanel && (
-            <div className="w-80">
-              <Card className="h-full flex flex-col">
-                <div className="p-4 border-b border-border">
-                  <h2 className="font-semibold text-foreground">Preview Changes</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Review AI suggestions and implement when ready
-                  </p>
-                </div>
-                
-                <ScrollArea className="flex-1">
-                  <div className="p-4 space-y-3">
-                    {pendingChanges.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Code className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                        <p className="text-sm text-muted-foreground">No pending changes</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Ask the AI to suggest improvements to see previews here
-                        </p>
-                      </div>
-                    ) : (
-                      pendingChanges.map((change) => (
-                        <div
-                          key={change.id}
-                          className="border border-border rounded-lg p-4 space-y-3"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <Badge 
-                              variant={
-                                change.status === "applied" ? "default" :
-                                change.status === "rejected" ? "destructive" : "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {change.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm">
-                              {change.description}
-                            </h4>
-                            <div className="text-xs text-muted-foreground">
-                              <span className="font-medium">Component:</span> {change.component}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              <span className="font-medium">Changes:</span> {change.changes}
-                            </div>
-                          </div>
-                          
-                          {change.status === "pending" && (
-                            <div className="flex flex-col gap-2 pt-3 border-t border-border">
-                              <Button
-                                size="sm"
-                                onClick={() => handleImplementChange(change.id)}
-                                className="w-full"
-                              >
-                                <Code className="h-3 w-3 mr-2" />
-                                Implement Change
-                              </Button>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleApplyChange(change.id)}
-                                  className="flex-1"
-                                >
-                                  Preview
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRejectChange(change.id)}
-                                  className="flex-1"
-                                >
-                                  Reject
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </Card>
-            </div>
-          )}
         </div>
       </main>
     </div>
